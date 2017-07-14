@@ -53,6 +53,8 @@ public class GearmanProxy {
     private final List<ManagementWorkerThread> gmwtHandles;
     private final String masterName;
 
+    private static final WorkerLock grabJobLock = new WorkerLock();
+
     // Singleton instance
     public static synchronized GearmanProxy getInstance() {
         if (gearmanProxy == null) {
@@ -342,5 +344,9 @@ public class GearmanProxy {
                 worker.registerJobs();
             }
         }
+    }
+
+    public static WorkerLock getGrabJobLock() {
+      return grabJobLock;
     }
 }

@@ -83,6 +83,7 @@ public class MyGearmanWorkerImpl implements GearmanSessionEventHandler {
     private volatile boolean jobUniqueIdRequired = false;
     private FunctionRegistry functionRegistry;
     private AvailabilityMonitor availability;
+    private WorkerLock grabJobLock;
 
     class GrabJobEventHandler implements GearmanServerResponseHandler {
 
@@ -92,6 +93,7 @@ public class MyGearmanWorkerImpl implements GearmanSessionEventHandler {
         GrabJobEventHandler(GearmanJobServerSession session) {
             super();
             this.session = session;
+            grabJobLock = GearmanProxy.getGrabJobLock();
         }
 
         public void handleEvent(GearmanPacket event) throws GearmanException {
@@ -231,8 +233,30 @@ public class MyGearmanWorkerImpl implements GearmanSessionEventHandler {
         return ret;
     }
 
+    public Set<GearmanFunctionFactory> getCanTakeFunctions() {
+      Set<GearmanFunctionFactory> functions = functionRegistry.getFunctions();
+      Set<GearmanFunctionFactory> resFunctions = new HashSet<GearmanFunctionFactory>();
+      for(GearmanFunctionFactory factory : functions) {
+        try {
+          if (factory.getFunction() instanceof StartJobWorker) {
+            StartJobWorker tmpFunc = (StartJobWorker) factory.getFunction();
+            if (tmpFunc.canBeTaken()) {
+              resFunctions.add(factory);
+            }
+          }
+          else {
+            resFunctions.add(factory);
+          }
+        } catch (Exception e) {
+          LOG.warn("Exception while checking if function " +
+              factory.getFunctionName() + " can be taken");
+        }
+      }
+      return resFunctions;
+    }
+
     private void registerFunctions() throws IOException {
-        Set<GearmanFunctionFactory> functions = functionRegistry.getFunctions();
+        Set<GearmanFunctionFactory> functions = getCanTakeFunctions();
 
         if (functions == null) {
             return;
@@ -339,6 +363,7 @@ public class MyGearmanWorkerImpl implements GearmanSessionEventHandler {
                 continue;
             }
 
+            // TODO: Since registerFunctions() is also called right before sending grab job, this could be unnecessary
             try {
                 LOG.debug("---- Worker " + this + " run loop register functions");
                 registerFunctions();
@@ -409,10 +434,23 @@ public class MyGearmanWorkerImpl implements GearmanSessionEventHandler {
     }
 
     private void sendGrabJob(GearmanJobServerSession s) throws InterruptedException {
+        // Need only one GRAB_JOB at a time due to job throttling
+        // CAN_DO changes after scheduling
+        grabJobLock.lock(this);
         // If we can get the lock, this will prevent other workers and
         // Jenkins itself from scheduling builds on this node.  If we
         // can not get the lock, this will wait for it.
         availability.lock(this);
+
+        // here comes registerFunctions
+        try {
+            LOG.debug("---- Worker " + this + " run loop register functions");
+            registerFunctions();
+        } catch (IOException io) {
+            LOG.warn("---- Worker " + this + " receieved IOException while" +
+                     " registering functions", io);
+            session.closeSession();
+        }
 
         GearmanTask grabJobTask = new GearmanTask(
             new GrabJobEventHandler(s),

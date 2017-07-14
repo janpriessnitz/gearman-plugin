@@ -32,6 +32,7 @@ import hudson.model.labels.LabelAtom;
 import hudson.model.Node;
 import hudson.model.TextParameterValue;
 import hudson.model.queue.QueueTaskFuture;
+import hudson.model.queue.QueueTaskDispatcher;
 import hudson.slaves.OfflineCause;
 
 import java.util.ArrayList;
@@ -211,6 +212,9 @@ public class StartJobWorker extends AbstractGearmanFunction {
             Queue.Executable exec = future.getStartCondition().get();
             AbstractBuild<?, ?> currBuild = (AbstractBuild<?, ?>) exec;
 
+            // unlock Jenkins-wide grab job lock
+            WorkerLock grabJobLock = GearmanProxy.getGrabJobLock();
+            grabJobLock.unlock(worker);
             if (!offlineWhenComplete) {
                 // Unlock the monitor for this worker
                 availability.unlock(worker);
@@ -249,5 +253,12 @@ public class StartJobWorker extends AbstractGearmanFunction {
                 jobData.getBytes(), "".getBytes(),
                 "".getBytes(), 0, 0);
         return gjr;
+    }
+
+    public boolean canBeTaken() {
+      for(QueueTaskDispatcher dis : QueueTaskDispatcher.all()) {
+        if(dis.canTake(computer.getNode(), project) != null) return false;
+      }
+      return true;
     }
 }
