@@ -104,6 +104,7 @@
         <jenkins-workflow-job-plugin>2.17</jenkins-workflow-job-plugin>
         <jenkins-workflow-cps-plugin>2.45</jenkins-workflow-cps-plugin>
         <jenkins-structs-plugin>1.14</jenkins-structs-plugin>
+        <additionalparam>-Xdoclint:none</additionalparam>
     </properties>
 
 
