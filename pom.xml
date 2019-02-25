@@ -96,6 +96,7 @@
         <jenkins-structs-plugin>1.14</jenkins-structs-plugin>
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <findbugs.failOnError>false</findbugs.failOnError>
+        <file.encoding>UTF-8</file.encoding>
     </properties>
 
 
