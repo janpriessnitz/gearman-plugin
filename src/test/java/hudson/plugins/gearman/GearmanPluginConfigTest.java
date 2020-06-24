@@ -69,6 +69,6 @@ public class GearmanPluginConfigTest {
     @Test
     public void testDefaultLaunchWorker() {
         assertEquals(Constants.GEARMAN_DEFAULT_ENABLE_PLUGIN,
-                gpc.enablePlugin());
+                gpc.isEnablePlugin());
     }
 }

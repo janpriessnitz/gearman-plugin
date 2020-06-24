@@ -42,7 +42,7 @@ public class QueueTaskDispatcherImpl extends QueueTaskDispatcher {
                                    Queue.BuildableItem item) {
         // update only when gearman-plugin is enabled
         // and custom gearman scheduling is enabled
-        if (!GearmanPluginConfig.get().enablePlugin() ||
+        if (!GearmanPluginConfig.get().isEnablePlugin() ||
             !GearmanPluginConfig.get().enableScheduling()) {
             return null;
         }

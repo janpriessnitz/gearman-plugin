@@ -46,7 +46,7 @@ public class SaveableListenerImpl extends SaveableListener {
     // also doesn't provide much detail on what has changed.
     public void onChange(Saveable o, XmlFile file) {
         // update functions only when gearman-plugin is enabled
-        if (!GearmanPluginConfig.get().enablePlugin()) {
+        if (!GearmanPluginConfig.get().isEnablePlugin()) {
             return;
         }
 
